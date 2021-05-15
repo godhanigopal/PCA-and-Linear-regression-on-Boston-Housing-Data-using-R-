@@ -1,0 +1,374 @@
+---
+title: "<center><h1> IST 693 Machine Learning Group - 4 </h1></center>"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+</br>
+<center> <h3> **Group Members** </h3> </center>
+<center> <h4> Gopal L Godhani 2659618 </h4> </center>
+<center> <h4> Vraj Mehalana </h4> </center>
+<center> <h4> Mihir Patel </h4> </center>
+<center> <h4> Pranay Kumar </h4> </center>
+</br>
+<center> <h2> PCA Analysis and Multiple Linear Regression on Boston Housing Data </h2> </center>
+
+</br>
+</br>
+_______________________________________________________________________________________________________________________________________________________
+
+</br>
+
+* ### Abstract  
+  
+  In this project, we are using Boston Housing Data to perform PCA analysis. Then we have built a simple linear regression model using the principal components and then compare the output with another linear regression model built using the original data. The output looked very similar, however, using PCA turned out to be better in our case. We were successfully able to fit model to 86% of data with using PCA and 74% without using PCA. I first have normalized our data after initial checks, as described in the following sections, and then perform PCA analysis and later construct the models to be comapared.
+
+  
+* ### Introduction to PCA and linear regression
+
+* PCA
+  
+  [Principal Component Analysis](https://en.wikipedia.org/wiki/Principal_component_analysis) or PCA of data is essentially a sequence of *p*  unit vectors, where the *i^th^* vector is the direction of a line that best fits the data while being orthogonal to the first *i − 1* vectors. It is usually used as a dimension-reduction method when dealing with large datasets while still keeping the variance as intact as possible from the original data. This dimension reduction typically comes at an expense of reduction in the model accuracy. 
+  Overall, PCA is a mathematical method that takes linearly correlated features and returns a small uncorrelated features. It's often used in dimensionality reduction to simplify learning models or to convert multidimensional data into 2D or 3D data that's easier to see.
+    
+* Linear Regression
+
+     To predict the relationship (line) between data points. It is dependent on the intercept and slope in the linear model. We must first decide whether there is a relationship between the  variables  of interest before using the linear regression model. The correlation coefficient is a useful indicator of how closely two variables are related. It value ranges from -1 (bad relationship) to 1 (strong relationship)
+  
+* ### Basic Flow Chart
+
+![Flow Chart](/home/godhanigopal/Pictures/Screenshot from 2021-05-06 10-51-53.png)
+
+
+* ### Data Analysis and processing 
+
+  Housing data for 506 census tracts of Boston from the 1970 census. The dataframe BostonHousing contains the original data by Harrison and Rubinfeld (1979), the dataframe BostonHousing2 the corrected version with additional spatial information (see references below).
+<br/><br/>
+
+#### Data Format
+
+→ The original data are 506 observations on 14 variables, medv being the target variable
+
+Following are the [variables](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html) in the data. 
+
+```{r}
+# crim - per capita crime rate by town
+# zn - proportion of residential land zoned for lots over 25,000 sq.ft
+# indus - proportion of non-retail business acres per town
+# chas - Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)
+# nox -	nitric oxides concentration (parts per 10 million)
+# rm -	average number of rooms per dwelling
+# age -	proportion of owner-occupied units built prior to 1940
+# dis -	weighted distances to five Boston employment centres
+# rad -	index of accessibility to radial highways
+# tax -	full-value property-tax rate per USD 10,000
+# ptratio -	pupil-teacher ratio by town
+# b - 1000(B - 0.63)^2 where B is the proportion of blacks by town
+# lstat - percentage of lower status of the population
+# medv - median value of owner-occupied homes in USD 1000's 
+```
+<br/>
+
+
+#### ‣ Loading and loading the required libraries
+
+```{r results=FALSE}
+#install.packages("MASS")
+#install.packages("dplyr")
+#install.packages("ggplot2")
+#install.packages("corrplot")
+#install.packages("tidyverse")
+#install.packages("clusterSim")
+#install.packages("glmnet")
+#install.packages("factoextra")
+#install.packages("ggfortify")
+```
+
+
+#### ‣ Loading the required packages
+
+```{r, message=FALSE}
+library(MASS)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(tidyverse)
+library(clusterSim)
+library(glmnet)
+library(factoextra)
+library(ggfortify)
+```
+<br/>
+
+#### ‣ Collecting data
+→ For this analysis, we are using, "Botson" a dataset representing a random sample of 506 and 14 variables.
+
+* Data source: The original data have been taken from the [UCI Repository Of Machine Learning Databases](http://www.ics.uci.edu/~mlearn/MLRepository.html). 
+
+
+→ Data can be accessed by loading package [MASS](https://cran.r-project.org/web/packages/MASS/MASS.pdf).  
+
+
+```{r}
+#Load data in a frame
+df_Boston <- Boston
+```
+<br/>
+
+#### ‣ Explore and Analyze the data
+
+```{r}
+#check dimention
+dim(df_Boston)
+```
+
+
+```{r}
+#check head and tail
+head(df_Boston)
+tail(df_Boston)
+```
+
+
+```{r}
+# structure of the data
+str(df_Boston)
+```
+
+
+```{r}
+#summary statistics
+summary(df_Boston)
+```
+
+```{r}
+# check for the NA/NULL values in data.
+colSums(is.na(df_Boston))
+```
+
+```{r}
+#Check for duplicated values
+sum(duplicated(df_Boston))
+```
+
+
+```{r}
+#checking the correlation between features
+result_cor<-cor(df_Boston)
+corrplot(result_cor,method = "number",type = "upper")
+```
+
+**→ Using the correlation matrix, we can derive following observations:**
+
+* The median value of owner-occupied homes in USD 1000's increases as average number of rooms per dwelling increases.
+
+* The median value of owner-occupied homes in USD 1000's decreases if percent of lower status population in the area increases.
+
+* Index of accessibility to radial highways increases, full-value property-tax rate per USD 10,000 also goes up.
+
+* Per-capita crime rate by town is also strongly positively related to Index of accessibility to radial highways and full-value property-tax rate per USD 10,000.
+
+* As proportion of non-retail business acres per town increases, the level of nitric oxides concentration (parts per 10 million) goes up.
+
+→ We can notice that some of our predictor variables are highly correlated. Since there are more than two predictor variables present with correlation between then, this suggest we have issue of multicollinearity. 
+
+→ Multicollinearity can be a problem as it can undermine the statistical importance of the individual independent variable. Moreover, it can make our model unstable. Moreover, we don't have in depth details of how each variable behaves in accordance with other, i.e. we have an imprecise estimate of the effect of independent changes. 
+<br/><br/>
+
+```{r warning=FALSE}
+#visualize each predictor variable against medv
+df_Boston %>%
+  gather(key, val, -medv) %>%
+  ggplot(aes(x = val, y = medv)) +
+  geom_point() +
+  stat_smooth(formula = y ~ x,method = "lm", se = TRUE, col = "red") +
+  facet_wrap(~key, scales = "free") +
+  theme_gray() +
+  ggtitle("Scatter plot of each variables vs Median Value (medv)")
+```
+
+→ As we can see, the proportion of the dwellings occupied bu owners prior to 1940 and the proportion of blacks by town is heavily skewed ro the left, at the same time, the crim rate and weighted mean of dis (weighted distances to five Boston employment centers) is mainly skewed to the right.
+
+<br/>
+
+#### ‣ Normalizing the data
+
+→ The scale of the features in the dataset is very different. However, we need to scale our data before you use it to proceed furthure to calculate PCA and for linear regression. This will help our model to not vary as much.
+
+```{r}
+#z-score normalization
+#type n1 - standardization - ((x-mean)/sd).
+df_boston_norm_all<-data.Normalization(df_Boston, type = "n1", normalization = "column")
+```
+
+```{r}
+#check summary statistics after normalization
+summary(df_boston_norm_all)
+```
+
+→ Now we have mean of 0 and standard devation of 1. 
+<br/>
+
+* **Extracting our target variable 'medv' so we can use it later**
+
+```{r}
+df_boston_norm_medv <-df_boston_norm_all $medv
+```
+<br/>
+
+#### ‣ Computing and using PCA
+
+```{r}
+#PCA
+df_Boston_pca <- prcomp(df_boston_norm_all)
+```
+
+* **Check for std dev and variance of PCA**
+```{r}
+#summary of PCA components
+summary(df_Boston_pca)
+```
+
+→ As we can see, first seven principal components accounts for ≅ 90% variance of the data. So, we can move forward with using just first seven of all the components to build our linear model.  
+
+* **Eigenvalues**
+```{r}
+#Visualize eigenvalues (scree plot). 
+fviz_eig(df_Boston_pca)
+```
+
+→ The plot above shows the percentage of variances explained by each principal component computed from our data. PC1 can explain the most variance.
+
+* **Biplot of individuals and variables**
+
+```{r warning=F}
+fviz_pca_biplot(df_Boston_pca, repel = TRUE,
+                col.var = "red", # Variables color
+                col.ind = "#696969"  # Individuals color,
+)
+```
+
+```{r warning=F}
+#plotting PCA
+autoplot(df_Boston_pca, data=df_Boston,loadings=TRUE,loadings.label=T, colour = 'medv' )
+```
+
+* **plot percentage of variance explained by each principal component**
+
+```{r}
+# each PC variance in %
+plot(summary(df_Boston_pca)$importance[3,])
+```
+
+* **Check how strongly a loading of variable contributes to pricipal components**
+
+→ NOTE: Here, I have only included plots for first eight PCs
+
+```{r}
+fviz_pca_var(df_Boston_pca,axes = c(1, 2))
+fviz_pca_var(df_Boston_pca,axes = c(3, 4))
+fviz_pca_var(df_Boston_pca,axes = c(5, 6))
+fviz_pca_var(df_Boston_pca,axes = c(7, 8))
+
+```
+
+
+
+```{r}
+## correlation matrix principal components
+cor_pca <- cor(df_Boston_pca$x, method = "pearson")
+corrplot(cor_pca, method = "number")
+
+```
+
+→ As we can see from the plot above, there is no correlation between each of the principal component of data. 
+<br/>
+
+* **Extracting PC from  output**
+
+```{r}
+principal_cps <- as.data.frame(df_Boston_pca$x)
+```
+
+* **Creating matrix using first seven PC to feed in our model**
+
+```{r}
+pca7_mv_data <- cbind(df_boston_norm_medv,principal_cps[,1:7])
+
+head(pca7_mv_data)
+dim(pca7_mv_data)
+```
+<br/>
+
+* **Scatter plots showing relationship between PCs and our target variable**
+
+```{r}
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC1, xlab="medv",ylab="PC1")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC2, xlab="medv",ylab="PC2")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC3, xlab="medv",ylab="PC3")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC4, xlab="medv",ylab="PC4")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC5, xlab="medv",ylab="PC5")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC6, xlab="medv",ylab="PC6")
+plot(x=df_boston_norm_medv,y=pca7_mv_data$PC7, xlab="medv",ylab="PC7")
+```
+
+<br/>
+
+#### ‣ Data modeling
+
+```{r}
+# split the data
+df_Boston_train<-df_boston_norm_all[1:380,]
+df_Boston_test<-df_boston_norm_all[381:506,]
+
+df_Boston_train_pca<-pca7_mv_data[1:380,]
+df_Boston_test_pca<-pca7_mv_data[381:506,]
+```
+
+* **With PCA**
+
+```{r}
+# applying the linear regression to data with PCA
+l_model_pca <- lm(df_boston_norm_medv ~ ., data = df_Boston_train_pca)
+#check the model 
+summary(l_model_pca)
+```
+
+* **Without PCA**
+```{r}
+# applying the linear regression to data with PCA
+l_model_2 <- lm(medv ~ ., data = df_Boston_train)
+summary(l_model_2)
+
+```
+
+* **shows which predicotr variable are significant**
+
+```{r}
+
+#check for coeeficient siginificance
+summary(l_model_pca)$coef
+summary(l_model_2)$coef
+```
+
+* **predict using the model**
+```{r warning=F}
+#prediction using both the nodels
+pred_medv_pca<-predict(l_model_pca, new.data=df_Boston_test_pca,interval = "prediction" )
+pred_medv_noPCA <-predict(l_model_pca, new.data=df_Boston_test,interval = "prediction" )
+```
+
+→ As we can see the outputs above, we were successfully able to fit model to 86% of data with using PCA and 74% without using PCA. Also, the residual errors was less when using PCA. However, my future work remains to examine the improve the models and examine other reason as in why the accuracy have actually gone up when using PCA.
+
+
+#### ‣ Conclusion
+
+  One probable reason could be is that we have essentially removed the latent predictor variables with using PCA while capturing the maximum variance possible. Also, we also have ultimately reduced the dimension with using PCA compared to our original dimension of 506 * 14.
+
+  One important thing to be noted here is that, using PCA means we are loosing the explainability as we no longer are using the original data
+  
+  Another reason of using PCA would be that it allows us to make our original data anonymous with keeping the same information intact in the data.
+
+  My future work remains to try out PCA with models other than linear regression and analyse how the is being shaped.
+  
